@@ -62,7 +62,7 @@ func main() {
 		c.JSON(http.StatusCreated, gin.H{`message`: `Person created successfully: ` + newPersonUUID})
 	})
 
-	router.GET("/login", func(c *gin.Context) {
+	router.POST("/login", func(c *gin.Context) {
 		var req struct {
 			Email    string `json:"email"`
 			Password string `json:"password"`

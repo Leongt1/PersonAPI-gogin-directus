@@ -186,7 +186,7 @@ func main() {
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"message": "Person updated successfully", "person_uuid": updatedUUID})
+		c.JSON(http.StatusOK, gin.H{"message": "Person updated successfully", "person_uuid": updatedUUID, "data": existingPerson})
 
 	})
 

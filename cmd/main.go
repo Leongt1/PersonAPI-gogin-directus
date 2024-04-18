@@ -20,7 +20,7 @@ type Person struct {
 	LastName     string `json:"last_name,omitempty"`
 	Email        string `json:"email,omitempty"`
 	Password     string `json:"password,omitempty"`
-	MobileNumber int64  `json:"mobile_number,omitempty"`
+	MobileNumber string `json:"mobile_number,omitempty"`
 }
 
 func main() {
@@ -162,7 +162,7 @@ func main() {
 			}
 			existingPerson.Password = string(hashedPassword)
 		}
-		if updates.MobileNumber != 0 {
+		if updates.MobileNumber != "" {
 			existingPerson.MobileNumber = updates.MobileNumber
 		}
 		// fmt.Println(existingPerson)

@@ -15,12 +15,13 @@ import (
 )
 
 type Person struct {
-	Person_uuid  string `json:"person_uuid,omitempty"`
-	FirstName    string `json:"first_name,omitempty"`
-	LastName     string `json:"last_name,omitempty"`
-	Email        string `json:"email,omitempty"`
-	Password     string `json:"password,omitempty"`
-	MobileNumber string `json:"mobile_number,omitempty"`
+	PersonUuid     string `json:"person_uuid,omitempty"`
+	ProfilePicture string `json:"profile_picture,omitempty"`
+	FirstName      string `json:"first_name,omitempty"`
+	LastName       string `json:"last_name,omitempty"`
+	Email          string `json:"email,omitempty"`
+	Password       string `json:"password,omitempty"`
+	MobileNumber   string `json:"mobile_number,omitempty"`
 }
 
 func main() {
@@ -185,7 +186,7 @@ func generateUUID() string {
 }
 
 func addNewPersonToDirectus(newPerson Person) (string, error) {
-	newPerson.Person_uuid = generateUUID()
+	newPerson.PersonUuid = generateUUID()
 
 	personJSON, err := json.Marshal(newPerson)
 	if err != nil {
@@ -217,7 +218,7 @@ func addNewPersonToDirectus(newPerson Person) (string, error) {
 		return "", fmt.Errorf("failed to add person: %s", bodyString)
 	}
 
-	return newPerson.Person_uuid, nil
+	return newPerson.PersonUuid, nil
 }
 
 func findPersonByEmail(email string) (*Person, error) {
@@ -324,7 +325,7 @@ func updatePerson(person *Person) (string, error) {
 		return "", err
 	}
 
-	url := "https://cdp.apcwo.org/items/person/" + person.Person_uuid
+	url := "https://cdp.apcwo.org/items/person/" + person.PersonUuid
 	// fmt.Println(string(url))
 	req, err := http.NewRequest("PATCH", url, bytes.NewBuffer(personJSON))
 	if err != nil {
@@ -352,5 +353,5 @@ func updatePerson(person *Person) (string, error) {
 		return "", fmt.Errorf("failed to update person: %s", bodyString)
 	}
 
-	return person.Person_uuid, nil
+	return person.PersonUuid, nil
 }

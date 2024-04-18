@@ -18,10 +18,12 @@ type Person struct {
 	PersonUuid     string `json:"person_uuid,omitempty"`
 	ProfilePicture string `json:"profile_picture,omitempty"`
 	FirstName      string `json:"first_name,omitempty"`
+	MiddleName     string `json:"middle_name,omitempty"`
 	LastName       string `json:"last_name,omitempty"`
 	Email          string `json:"email,omitempty"`
 	Password       string `json:"password,omitempty"`
 	MobileNumber   string `json:"mobile_number,omitempty"`
+	Gender         string `json:"gender,omitempty"`
 }
 
 func main() {
@@ -146,8 +148,14 @@ func main() {
 		}
 
 		// Update fields if provided
+		if updates.ProfilePicture != "" {
+			existingPerson.ProfilePicture = updates.ProfilePicture
+		}
 		if updates.FirstName != "" {
 			existingPerson.FirstName = updates.FirstName
+		}
+		if updates.MiddleName != "" {
+			existingPerson.MiddleName = updates.MiddleName
 		}
 		if updates.LastName != "" {
 			existingPerson.LastName = updates.LastName
@@ -166,6 +174,10 @@ func main() {
 		if updates.MobileNumber != "" {
 			existingPerson.MobileNumber = updates.MobileNumber
 		}
+		if updates.Gender != "" {
+			existingPerson.Gender = updates.Gender
+		}
+
 		// fmt.Println(existingPerson)
 		// Save updated data
 		updatedUUID, updateErr := updatePerson(existingPerson)

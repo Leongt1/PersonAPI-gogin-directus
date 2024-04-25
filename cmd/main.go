@@ -16,7 +16,7 @@ import (
 
 type Person struct {
 	PersonUuid     string `json:"person_uuid,omitempty"`
-	ProfilePicture string `json:"profile_picture,omitempty"`
+	ProfilePicture byte   `json:"profile_picture,omitempty"`
 	FirstName      string `json:"first_name,omitempty"`
 	MiddleName     string `json:"middle_name,omitempty"`
 	LastName       string `json:"last_name,omitempty"`
@@ -82,7 +82,7 @@ func main() {
 			return
 		}
 
-		// fmt.Println(req.Email)
+		// fmt.Println(person)
 		if person == nil || person.Email == "" || person.Password == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "No such user or incomplete data"})
 			return
@@ -106,7 +106,7 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Person ID is required"})
 			return
 		}
-		// fmt.Println(id, "this is id")
+		// fmt.Println(person, "this is person")
 
 		person, err := findPersonByUUID(id)
 		if err != nil {
@@ -138,6 +138,7 @@ func main() {
 
 		// Fetch the existing data
 		existingPerson, err := findPersonByUUID(id)
+		fmt.Println("existing", existingPerson)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error: existingPerson": err.Error()})
 			return
@@ -148,7 +149,7 @@ func main() {
 		}
 
 		// Update fields if provided
-		if updates.ProfilePicture != "" {
+		if updates.ProfilePicture != 0 {
 			existingPerson.ProfilePicture = updates.ProfilePicture
 		}
 		if updates.FirstName != "" {
@@ -178,15 +179,14 @@ func main() {
 			existingPerson.Gender = updates.Gender
 		}
 
-		// fmt.Println(existingPerson)
 		// Save updated data
-		updatedUUID, updateErr := updatePerson(existingPerson)
+		newPersonData, updateErr := updatePerson(existingPerson)
 		if updateErr != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error: updateUUID": updateErr.Error()})
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"message": "Person updated successfully", "person_uuid": updatedUUID, "data": existingPerson})
+		c.JSON(http.StatusOK, gin.H{"message": "Person updated successfully", "person_data": newPersonData})
 
 	})
 
@@ -213,6 +213,9 @@ func addNewPersonToDirectus(newPerson Person) (string, error) {
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer SunZsR_2wQjHGgm_HeU1NW6KnXD-FJCm")
+	req.Header.Add("Cache-Control", "no-cache, no-store, must-revalidate")
+	req.Header.Add("Pragma", "no-cache")
+	req.Header.Add("Expires", "0")
 
 	client := &http.Client{}
 	res, err := client.Do(req)
@@ -235,7 +238,7 @@ func addNewPersonToDirectus(newPerson Person) (string, error) {
 
 func findPersonByEmail(email string) (*Person, error) {
 	var response struct {
-		Data []Person `json:"data"`
+		PersonData []Person `json:"data"`
 	}
 
 	// Set up the Directus API endpoint and parameters
@@ -252,6 +255,9 @@ func findPersonByEmail(email string) (*Person, error) {
 
 	// Include your API access token here
 	req.Header.Add("Authorization", "Bearer SunZsR_2wQjHGgm_HeU1NW6KnXD-FJCm")
+	req.Header.Add("Cache-Control", "no-cache, no-store, must-revalidate")
+	req.Header.Add("Pragma", "no-cache")
+	req.Header.Add("Expires", "0")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -268,21 +274,24 @@ func findPersonByEmail(email string) (*Person, error) {
 		}
 		return nil, fmt.Errorf("directus API error: %s", string(bodyBytes))
 	}
-
+	// fmt.Println(response.PersonData, "this is before")
 	// Decode the JSON response
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, err
 	}
 
 	// Check if any person is returned
-	if len(response.Data) == 0 {
+	if len(response.PersonData) == 0 {
 		return nil, nil // No user found
 	}
+	// fmt.Println(response.PersonData, "this is after")
 
-	return &response.Data[0], nil // Return the first person found
+	return &response.PersonData[0], nil // Return the first person found
 }
 
 func findPersonByUUID(id string) (*Person, error) {
+	fmt.Println("Fetching person by UUID:", id) // Debugging log
+
 	var response struct {
 		Data []Person `json:"data"`
 	}
@@ -290,8 +299,11 @@ func findPersonByUUID(id string) (*Person, error) {
 	// Set up the Directus API endpoint and parameters
 	baseURL := "https://cdp.apcwo.org/items/person"
 	params := url.Values{}
-	params.Add("filter[person_uuid][_eq]", id) // Consider using "_eq" for exact matches
+	params.Add("filter[person_uuid][_eq]", id) // Use "_eq" for exact matches
 	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
+
+	// Debugging: log the full URL
+	fmt.Println("Full URL for API request:", fullURL)
 
 	// Make a request to Directus
 	req, err := http.NewRequest("GET", fullURL, nil)
@@ -299,8 +311,11 @@ func findPersonByUUID(id string) (*Person, error) {
 		return nil, err
 	}
 
-	// Include your API access token here
+	// Set headers to avoid caching
 	req.Header.Add("Authorization", "Bearer SunZsR_2wQjHGgm_HeU1NW6KnXD-FJCm")
+	req.Header.Add("Cache-Control", "no-cache, no-store, must-revalidate")
+	req.Header.Add("Pragma", "no-cache")
+	req.Header.Add("Expires", "0")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -315,7 +330,9 @@ func findPersonByUUID(id string) (*Person, error) {
 		if err != nil {
 			return nil, err
 		}
-		return nil, fmt.Errorf("directus API error: %s", string(bodyBytes))
+		bodyString := string(bodyBytes)
+		fmt.Println("API error response:", bodyString) // Debugging log
+		return nil, fmt.Errorf("directus API error: %s", bodyString)
 	}
 
 	// Decode the JSON response
@@ -323,34 +340,43 @@ func findPersonByUUID(id string) (*Person, error) {
 		return nil, err
 	}
 
+	// Debugging: log the fetched data
+	if len(response.Data) > 0 {
+		fmt.Println("Fetched person data:", response.Data[0])
+	} else {
+		fmt.Println("No person found with UUID:", id)
+	}
+
 	// Check if any person is returned
 	if len(response.Data) == 0 {
 		return nil, nil // No user found
 	}
-
 	return &response.Data[0], nil // Return the first person found
 }
 
-func updatePerson(person *Person) (string, error) {
+func updatePerson(person *Person) (*Person, error) {
 	personJSON, err := json.Marshal(person)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	url := "https://cdp.apcwo.org/items/person/" + person.PersonUuid
 	// fmt.Println(string(url))
 	req, err := http.NewRequest("PATCH", url, bytes.NewBuffer(personJSON))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Bearer SunZsR_2wQjHGgm_HeU1NW6KnXD-FJCm")
-	// fmt.Println(req)
+	req.Header.Add("Cache-Control", "no-cache, no-store, must-revalidate")
+	req.Header.Add("Pragma", "no-cache")
+	req.Header.Add("Expires", "0")
+
 	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer res.Body.Close()
 	// fmt.Println(res)
@@ -358,12 +384,12 @@ func updatePerson(person *Person) (string, error) {
 		bodyBytes, err := io.ReadAll(res.Body)
 		if err != nil {
 			fmt.Println("Error reading response body:", err)
-			return "", err
+			return nil, err
 		}
 		bodyString := string(bodyBytes)
 		// fmt.Println("API response error:", bodyString)
-		return "", fmt.Errorf("failed to update person: %s", bodyString)
+		return nil, fmt.Errorf("failed to update person: %s", bodyString)
 	}
 
-	return person.PersonUuid, nil
+	return person, nil
 }
